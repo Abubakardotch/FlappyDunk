@@ -1,6 +1,7 @@
 #include <SFML/Graphics.hpp>
 #include <iostream>
 #include <string>
+#include <fstream>
 
 using namespace std;
 using namespace sf;
@@ -30,13 +31,42 @@ void drawButton(RenderWindow& window, Font& font,
     drawText(window, font, label, 30, x + 70, y + 10);
 }
 
+int loadBestScore() {
 
-int main(){
+    ifstream file("best_score.txt");
+
+    int score = 0;
+
+    if (!(file >> score)) {
+        return 0;
+    }
+
+    return score;
+}
+
+bool saveBestScore(int score) {
+
+    ofstream file("best_score.txt");
+
+    if (!file) {
+        return false;
+    }
+
+    file << score << '\n';
+    file.close();
+
+    return !file.fail();
+}
+
+
+int main() {
 
     Font font;
     if (!font.openFromFile("C:/Windows/Fonts/arial.ttf")) {
         return 1;
     }
+
+    int bestScore = loadBestScore();
 
     RenderWindow window(
         VideoMode({ window_width, window_height }),
@@ -47,17 +77,17 @@ int main(){
     window.setFramerateLimit(60);
 
 
-    while (window.isOpen()){
+    while (window.isOpen()) {
 
         while (const auto event = window.pollEvent())
         {
-            if (event->is<Event::Closed>()){
+            if (event->is<Event::Closed>()) {
                 window.close();
             }
 
             if (const auto* click = event->getIf<Event::MouseButtonPressed>())
             {
-                if (click->button == Mouse::Button::Left){
+                if (click->button == Mouse::Button::Left) {
 
                     Vector2f mouse = window.mapPixelToCoords(click->position);
 
@@ -70,7 +100,7 @@ int main(){
                     if (mouse.x >= 330.f && mouse.x <= 530.f &&
                         mouse.y >= 280.f && mouse.y <= 340.f)
                     {
-                        cout << "Instructions clicked" << endl;
+                        cout << "Guide clicked" << endl;
                     }
 
                     if (mouse.x >= 330.f && mouse.x <= 530.f &&
@@ -86,13 +116,14 @@ int main(){
 
         window.clear(Color(19, 27, 43));
 
-        drawText(window, font, "Flappy Dunk", 50, 310.f, 60.f , Color(255, 170, 70));
+        drawText(window, font, "Flappy Dunk", 50, 310.f, 60.f, Color(255, 170, 70));
         drawText(window, font, "Bounce. Aim. Score.", 20, 370.f, 130.f);
 
         drawButton(window, font, "Play", 330.f, 210.f, 200.f, 60.f);
         drawButton(window, font, "Guide", 330.f, 280.f, 200.f, 60.f);
         drawButton(window, font, "Quit", 330.f, 350.f, 200.f, 60.f);
 
+        drawText(window, font, "Best score: " + to_string(bestScore), 20, 370.f, 450.f);
 
         window.display();
     }
