@@ -8,6 +8,9 @@ using namespace sf;
 
 const int window_width = 900;
 const int window_height = 700;
+const float ball_size = 15.f;
+const float hoop_width = 120.f;
+const float hoop_height = 70.f;
 
 void drawText(RenderWindow& window, Font& font,
     string str, int size,
@@ -58,10 +61,43 @@ bool saveBestScore(int score) {
     return !file.fail();
 }
 
-bool isInside(Vector2f mouse, float x, float y, float w, float h) {
+bool isInside(Vector2f mouse, float x, float y, float w, float h){
 
     return mouse.x >= x && mouse.x <= x + w &&
         mouse.y >= y && mouse.y <= y + h;
+}
+
+void ball(RenderWindow& window, float x, float y){
+
+    CircleShape ball(ball_size);
+    ball.setOrigin({ ball_size, ball_size });
+    ball.setPosition({ x, y });
+    ball.setFillColor(Color(255, 150, 45));
+    window.draw(ball);
+}
+
+void hoop(RenderWindow& window, float x, float y){
+
+    Color color(255, 150, 45);
+
+    RectangleShape left({ 5.f, hoop_height });
+    left.setPosition({ x, y });
+    left.setFillColor(color);
+    window.draw(left);
+
+    RectangleShape right({ 5.f, hoop_height });
+    right.setPosition({ x + hoop_width - 5.f, y });
+    right.setFillColor(color);
+    window.draw(right);
+
+    CircleShape rim(hoop_width / 2.f, 80);
+    rim.setOrigin({ hoop_width / 2.f, hoop_width / 2.f });
+    rim.setPosition({ x + hoop_width / 2.f, y });
+    rim.setScale({ 1.f, 0.14f });
+    rim.setFillColor(Color::Transparent);
+    rim.setOutlineThickness(5.f);
+    rim.setOutlineColor(color);
+    window.draw(rim);
 }
 
 int main() {
@@ -82,6 +118,10 @@ int main() {
     window.setFramerateLimit(60);
 
     int screen = 0;    // 0 : main menu  ,   1 : game   , 2 : guide
+    float ball_x = 150.f;
+    float ball_y = 250.f;
+    float hoop_x = 390.f;
+    float hoop_y = 450.f;
 
     while (window.isOpen()) {
 
@@ -97,7 +137,7 @@ int main() {
 
                     Vector2f mouse = window.mapPixelToCoords(click->position);
 
-                    if (screen == 0) {
+                    if (screen == 0){
                         // main menu
                         if (isInside(mouse, 330, 210, 200, 60))
                         {
@@ -112,7 +152,7 @@ int main() {
                             window.close();
                         }
                     }
-                    else if (screen == 2) {       // instructions
+                    else if (screen == 2){       // instructions
 
                         if (isInside(mouse, 330, 560, 200, 60))
                         {
@@ -126,7 +166,7 @@ int main() {
 
         window.clear(Color(19, 27, 43));
 
-        if (screen == 0) {
+        if (screen == 0){
 
             drawText(window, font, "Flappy Dunk", 50, 310.f, 60.f, Color(255, 170, 70));
             drawText(window, font, "Bounce. Aim. Score.", 20, 370.f, 130.f);
@@ -137,7 +177,7 @@ int main() {
 
             drawText(window, font, "Best score: " + to_string(bestScore), 20, 370.f, 450.f);
         }
-        else if (screen == 2) {
+        else if (screen == 2){
 
             drawText(window, font, "How to Play", 45, 320.f, 60.f, Color(255, 170, 70));
             drawText(window, font, "Space / Left click: bounce the ball upward.", 24, 100.f, 170.f);
@@ -149,8 +189,9 @@ int main() {
 
             drawButton(window, font, "Back", 330.f, 560.f, 200.f, 60.f);
         }
-        else if (screen == 1) {
-            // main menu 
+        else if (screen == 1){
+            ball(window, ball_x, ball_y);
+            hoop(window, hoop_x, hoop_y);
         }
 
         window.display();
