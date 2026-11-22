@@ -38,6 +38,7 @@ cd FlappyDunk
 - **Space / Left click**: bounce the ball upward.
 - Pass **down through each hoop** to score 1 point.
 - Missing a hoop or hitting the floor ends the game.
+- **S**: slow motion - 3 uses per game.
 - **R**: restart the game.
 - **Esc**: return to the main menu.
 
