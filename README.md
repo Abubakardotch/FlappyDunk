@@ -30,7 +30,7 @@ cd FlappyDunk
 ## How to Run
 
 1. Open the cloned project folder in your IDE (for example Visual Studio or VS Code).
-2. Run `CMakeLists.txt`. This sets up the project and links SFML.
+2. Run `CMakeLists.txt`. This sets up the project and links SFML (run only once).
 3. Run `FlappyDunk.cpp`. The game window will open.
 
 ## How to Play
