@@ -27,9 +27,11 @@ struct Game {
     float hoopY = 420.f;
     bool hoopScored = false;
     int score = 0;
-    float messageRemaining = 0.f;
+    float msgTime = 0.f;
     bool started = false;
     bool over = false;
+    float slowTime = 0.f;
+    int slowLeft = 3;
 };
 
 void drawText(RenderWindow& window, Font& font,
@@ -81,10 +83,10 @@ bool saveBestScore(int score) {
     return !file.fail();
 }
 
-bool isInside(Vector2f mouse, float x, float y, float w, float h){
+bool isInside(float mouseX, float mouseY, float x, float y, float w, float h) {
 
-    return mouse.x >= x && mouse.x <= x + w &&
-        mouse.y >= y && mouse.y <= y + h;
+    return mouseX >= x && mouseX <= x + w &&
+        mouseY >= y && mouseY <= y + h;
 }
 
 void ball(RenderWindow& window, float x, float y){
@@ -130,10 +132,13 @@ void resetGame(Game& game){
     game.hoopScored = false;
 
     game.score = 0;
-    game.messageRemaining = 0.f;
+    game.msgTime = 0.f;
 
     game.started = false;
     game.over = false;
+
+    game.slowTime = 0.f;
+    game.slowLeft = 3;
 }
 
 void flap(Game& game) {
@@ -169,26 +174,33 @@ void updateGame(Game& game, float dt, int& bestScore){
         return;
     }
 
-    // "+1" ka timer kam karo
-    game.messageRemaining -= dt;
-    if (game.messageRemaining < 0.f) {
-        game.messageRemaining = 0.f;
+    game.msgTime -= dt;
+    if (game.msgTime < 0.f) {
+        game.msgTime = 0.f;
+    }
+
+    float moveDt = dt;
+
+    if (game.slowTime > 0.f) {
+        moveDt = dt * 0.5f;
+        game.slowTime -= dt;
+        if (game.slowTime < 0.f) {
+            game.slowTime = 0.f;
+        }
     }
 
     float oldBallY = game.ballY;
 
-    // Ball aur hoop move
-    game.velocityY += gravity * dt;
-    game.ballY += game.velocityY * dt;
-    game.hoopX -= hoop_speed * dt;
+    game.velocityY += gravity * moveDt;
+    game.ballY += game.velocityY * moveDt;
+    game.hoopX -= hoop_speed * moveDt;
 
-    // Ball upar se bahar na jaye
+    // ball can not move out from top
     if (game.ballY < ball_size) {
         game.ballY = ball_size;
         game.velocityY = 0.f;
     }
-
-    // Ball neeche ki taraf hoop ki height se guzri, aur hoop ke andar hai?
+    
     if (!game.hoopScored && game.velocityY > 0.f &&
         oldBallY < game.hoopY && game.ballY >= game.hoopY)
     {
@@ -197,7 +209,7 @@ void updateGame(Game& game, float dt, int& bestScore){
         {
             game.hoopScored = true;
             game.score++;
-            game.messageRemaining = 1.f;   // 1 second +1 dikhao
+            game.msgTime = 1.f;
         }
     }
 
@@ -267,6 +279,12 @@ int main() {
                     else if (key->code == Keyboard::Key::R) {
                         resetGame(game);
                     }
+                    else if (key->code == Keyboard::Key::S) {
+                        if (game.started && !game.over && game.slowLeft > 0 && game.slowTime <= 0.f) {
+                            game.slowLeft--;
+                            game.slowTime = 2.f;
+                        }
+                    }
                 }
             }
 
@@ -274,20 +292,21 @@ int main() {
             {
                 if (click->button == Mouse::Button::Left) {
 
-                    Vector2f mouse = window.mapPixelToCoords(click->position);
+                    float mouseX = click->position.x;
+                    float mouseY = click->position.y;
 
                     if (screen == 0){
                         // main menu
-                        if (isInside(mouse, 330, 210, 200, 60)){
+                        if (isInside(mouseX, mouseY, 330, 210, 200, 60)){
 
                             screen = 1;
                             resetGame(game);
                         }
-                        else if (isInside(mouse, 330, 280, 200, 60))
+                        else if (isInside(mouseX, mouseY, 330, 280, 200, 60))
                         {
                             screen = 2;
                         }
-                        else if (isInside(mouse, 330, 350, 200, 60))
+                        else if (isInside(mouseX,mouseY, 330, 350, 200, 60))
                         {
                             window.close();
                         }
@@ -297,7 +316,7 @@ int main() {
                     }
                     else if (screen == 2){       // instructions
 
-                        if (isInside(mouse, 330, 560, 200, 60))
+                        if (isInside(mouseX,mouseY, 330, 560, 200, 60))
                         {
                             screen = 0;
                         }
@@ -348,12 +367,17 @@ int main() {
 
             drawText(window, font, "Score: " + to_string(game.score), 28, 20.f, 20.f);
             drawText(window, font, "Best: " + to_string(bestScore), 28, 720.f, 20.f);
+            drawText(window, font, "Slow (S): " + to_string(game.slowLeft), 24, 20.f, 60.f);
+
+            if (game.slowTime > 0.f) {
+                drawText(window, font, "SLOW MOTION", 30, 350.f, 60.f, Color(100, 200, 255));
+            }
 
             if (!game.started) {
                 drawText(window, font, "Press SPACE or click to start", 27, 280.f, 140.f);
             }
 
-            if (game.messageRemaining > 0.f && !game.over) {
+            if (game.msgTime > 0.f) {
                 drawText(window, font, "+1", 45, 425.f, 100.f, Color(255, 170, 70));
             }
 
