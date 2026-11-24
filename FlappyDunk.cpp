@@ -317,7 +317,7 @@ int main() {
 
     // Obstacle Creation
     Texture obstacleTexture;
-    if (!obstacleTexture.loadFromFile("obstacle.jpeg")) {
+    if (!obstacleTexture.loadFromFile("obstacle.png")) {
         return 1;
     }
 
