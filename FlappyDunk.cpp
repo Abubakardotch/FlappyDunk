@@ -35,6 +35,7 @@ struct Game {
     bool over = false;
     float slowTime = 0.f;
     int slowLeft = 3;
+    bool paused = false;
 };
 
 void drawText(RenderWindow& window, Font& font,
@@ -115,7 +116,7 @@ void hoop(RenderWindow& window, Sprite& sprite, float x, float y) {
     window.draw(sprite);
 }
 
-void resetGame(Game& game){
+void resetGame(Game& game) {
 
     game.ballY = 250.f;
     game.velocityY = 0.f;
@@ -134,11 +135,13 @@ void resetGame(Game& game){
 
     game.slowTime = 0.f;
     game.slowLeft = 3;
+
+    game.paused = false;
 }
 
 void flap(Game& game) {
 
-    if (game.over) {
+    if (game.over || game.paused) {
         return;
     }
 
@@ -146,7 +149,7 @@ void flap(Game& game) {
     game.velocityY = jump_speed;
 }
 
-void endGame(Game& game, int& bestScore){
+void endGame(Game& game, int& bestScore) {
 
     game.over = true;
 
@@ -163,9 +166,9 @@ float hoopPosition() {
     return (float)range(generator);
 }
 
-void updateGame(Game& game, float dt, int& bestScore){
+void updateGame(Game& game, float dt, int& bestScore) {
 
-    if (!game.started || game.over) {
+    if (!game.started || game.over || game.paused) {
         return;
     }
 
@@ -195,7 +198,7 @@ void updateGame(Game& game, float dt, int& bestScore){
         game.ballY = ball_size;
         game.velocityY = 0.f;
     }
-    
+
     if (!game.hoopScored && game.velocityY > 0.f &&
         oldBallY < game.hoopY && game.ballY >= game.hoopY)
     {
@@ -326,8 +329,13 @@ int main() {
                     else if (key->code == Keyboard::Key::R) {
                         resetGame(game);
                     }
+                    else if (key->code == Keyboard::Key::P) {
+                        if (game.started && !game.over) {
+                            game.paused = !game.paused;
+                        }
+                    }
                     else if (key->code == Keyboard::Key::S) {
-                        if (game.started && !game.over && game.slowLeft > 0 && game.slowTime <= 0.f) {
+                        if (game.started && !game.over && !game.paused && game.slowLeft > 0 && game.slowTime <= 0.f) {
                             game.slowLeft--;
                             game.slowTime = 2.f;
                         }
@@ -342,9 +350,9 @@ int main() {
                     float mouseX = click->position.x;
                     float mouseY = click->position.y;
 
-                    if (screen == 0){
+                    if (screen == 0) {
                         // main menu
-                        if (isInside(mouseX, mouseY, 330, 210, 200, 60)){
+                        if (isInside(mouseX, mouseY, 330, 210, 200, 60)) {
 
                             screen = 1;
                             resetGame(game);
@@ -353,7 +361,7 @@ int main() {
                         {
                             screen = 2;
                         }
-                        else if (isInside(mouseX,mouseY, 330, 350, 200, 60))
+                        else if (isInside(mouseX, mouseY, 330, 350, 200, 60))
                         {
                             window.close();
                         }
@@ -361,9 +369,9 @@ int main() {
                     else if (screen == 1) {
                         flap(game);
                     }
-                    else if (screen == 2){       // instructions
+                    else if (screen == 2) {       // instructions
 
-                        if (isInside(mouseX,mouseY, 330, 560, 200, 60))
+                        if (isInside(mouseX, mouseY, 330, 560, 200, 60))
                         {
                             screen = 0;
                         }
@@ -392,7 +400,7 @@ int main() {
         window.clear(Color(19, 27, 43));
         window.draw(backgroundSprite);
 
-        if (screen == 0){
+        if (screen == 0) {
 
             RectangleShape panel({ 500.f, 480.f });
             panel.setPosition({ 200.f, 30.f });
@@ -410,7 +418,7 @@ int main() {
 
             drawText(window, font, "Best Score: " + to_string(bestScore), 20, 370.f, 450.f);
         }
-        else if (screen == 2){
+        else if (screen == 2) {
 
             RectangleShape panel({ 780.f, 610.f });
             panel.setPosition({ 60.f, 30.f });
@@ -430,11 +438,11 @@ int main() {
             stepRow(window, font, "2", "Drop the ball through a hoop to get 1 point.", 230.f);
             stepRow(window, font, "3", "Press S for slow motion (2 seconds, 3 uses).", 300.f);
             stepRow(window, font, "4", "Missing a hoop or touching the floor ends the game.", 370.f);
-            stepRow(window, font, "5", "Press R to restart and ESC to go to the menu.", 440.f);
+            stepRow(window, font, "5", "Press P to pause, Press R to restart and ESC for menu.", 440.f);
 
             drawButton(window, font, "Back", 330.f, 560.f, 200.f, 60.f);
         }
-        else if (screen == 1){
+        else if (screen == 1) {
 
             RectangleShape floor({ 900.f, 35.f });
             floor.setPosition({ 0.f, floor_y });
@@ -446,7 +454,8 @@ int main() {
 
             drawText(window, font, "Score: " + to_string(game.score), 28, 20.f, 20.f);
             drawText(window, font, "Best: " + to_string(bestScore), 28, 720.f, 20.f);
-            drawText(window, font, "Slow (S): " + to_string(game.slowLeft), 24, 20.f, 60.f);
+            drawText(window, font, "Slow (S): " + to_string(game.slowLeft), 28, 20.f, 60.f);
+            drawText(window, font, "Pause (P)", 28, 720.f, 60.f);
 
             if (game.slowTime > 0.f) {
                 drawText(window, font, "SLOW MOTION", 30, 350.f, 60.f, Color(100, 200, 255));
@@ -458,6 +467,19 @@ int main() {
 
             if (game.msgTime > 0.f) {
                 drawText(window, font, "+1", 45, 425.f, 100.f, Color(255, 170, 70));
+            }
+
+            if (game.paused) {
+
+                RectangleShape panel({ 460.f, 200.f });
+                panel.setPosition({ 220.f, 230.f });
+                panel.setFillColor(Color(19, 27, 43, 220));
+                panel.setOutlineThickness(3.f);
+                panel.setOutlineColor(Color(255, 170, 70));
+                window.draw(panel);
+
+                drawText(window, font, "PAUSED", 46, 355.f, 255.f, Color(255, 150, 80));
+                drawText(window, font, "Press P to continue", 24, 345.f, 345.f);
             }
 
             if (game.over) {
