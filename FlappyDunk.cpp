@@ -21,6 +21,10 @@ const float start_speed = 130.f;
 const float max_speed = 300.f;
 const float floor_y = 665.f;
 
+const float obstacle_width = 100.f;
+const float obstacle_height = 100.f;
+const float obstacle_gap = 350.f;
+
 struct Game {
 
     float ballY = 250.f;
@@ -36,6 +40,8 @@ struct Game {
     float slowTime = 0.f;
     int slowLeft = 3;
     bool paused = false;
+    float obstacleX = -200.f;
+    float obstacleY = 300.f;
 };
 
 void drawText(RenderWindow& window, Font& font,
@@ -116,6 +122,19 @@ void hoop(RenderWindow& window, Sprite& sprite, float x, float y) {
     window.draw(sprite);
 }
 
+void obstacle(RenderWindow& window, Sprite& sprite, float x, float y) {
+
+    sprite.setPosition({ x, y });
+    window.draw(sprite);
+}
+
+float obstaclePosition() {
+
+    static mt19937 generator(random_device{}());
+    uniform_int_distribution<int> range(150, 500);
+    return (float)range(generator);
+}
+
 void resetGame(Game& game) {
 
     game.ballY = 250.f;
@@ -137,6 +156,8 @@ void resetGame(Game& game) {
     game.slowLeft = 3;
 
     game.paused = false;
+    game.obstacleX = -200.f;
+    game.obstacleY = 300.f;
 }
 
 void flap(Game& game) {
@@ -192,6 +213,7 @@ void updateGame(Game& game, float dt, int& bestScore) {
     game.velocityY += gravity * moveDt;
     game.ballY += game.velocityY * moveDt;
     game.hoopX -= game.hoopSpeed * moveDt;
+    game.obstacleX -= game.hoopSpeed * moveDt;
 
     // ball can not move out from top
     if (game.ballY < ball_size) {
@@ -220,6 +242,16 @@ void updateGame(Game& game, float dt, int& bestScore) {
         return;
     }
 
+    // ball touched the obstacle
+    if (ball_x + ball_size > game.obstacleX + 15.f &&
+        ball_x - ball_size < game.obstacleX + obstacle_width - 15.f &&
+        game.ballY + ball_size > game.obstacleY + 15.f &&
+        game.ballY - ball_size < game.obstacleY + obstacle_height - 15.f)
+    {
+        endGame(game, bestScore);
+        return;
+    }
+
     // ball touched the floor
     if (game.ballY + ball_size >= floor_y) {
         endGame(game, bestScore);
@@ -231,6 +263,11 @@ void updateGame(Game& game, float dt, int& bestScore) {
         game.hoopX = window_width + 40.f;
         game.hoopY = hoopPosition();
         game.hoopScored = false;
+
+        if (game.obstacleX + obstacle_width < 0.f) {
+            game.obstacleX = game.hoopX + obstacle_gap;
+            game.obstacleY = obstaclePosition();
+        }
     }
 }
 
@@ -276,6 +313,18 @@ int main() {
     hoopSprite.setScale({
         hoop_width / hoopTexture.getSize().x,
         hoop_height / hoopTexture.getSize().y
+        });
+
+    // Obstacle Creation
+    Texture obstacleTexture;
+    if (!obstacleTexture.loadFromFile("obstacle.jpeg")) {
+        return 1;
+    }
+
+    Sprite obstacleSprite(obstacleTexture);
+    obstacleSprite.setScale({
+        obstacle_width / obstacleTexture.getSize().x,
+        obstacle_height / obstacleTexture.getSize().y
         });
 
     SoundBuffer scoreBuffer;
@@ -400,7 +449,7 @@ int main() {
         window.clear(Color(19, 27, 43));
         window.draw(backgroundSprite);
 
-        if (screen == 0) {
+        if (screen == 0) {           // Main Menu
 
             RectangleShape panel({ 500.f, 480.f });
             panel.setPosition({ 200.f, 30.f });
@@ -418,7 +467,7 @@ int main() {
 
             drawText(window, font, "Best Score: " + to_string(bestScore), 20, 370.f, 450.f);
         }
-        else if (screen == 2) {
+        else if (screen == 2) {      // Guide Window
 
             RectangleShape panel({ 780.f, 610.f });
             panel.setPosition({ 60.f, 30.f });
@@ -437,12 +486,12 @@ int main() {
             stepRow(window, font, "1", "Press SPACE or click to bounce the ball up.", 160.f);
             stepRow(window, font, "2", "Drop the ball through a hoop to get 1 point.", 230.f);
             stepRow(window, font, "3", "Press S for slow motion (2 seconds, 3 uses).", 300.f);
-            stepRow(window, font, "4", "Missing a hoop or touching the floor ends the game.", 370.f);
+            stepRow(window, font, "4", "Missing a hoop, touching the floor and obstacle ends the game.", 370.f);
             stepRow(window, font, "5", "Press P to pause, Press R to restart and ESC for menu.", 440.f);
 
             drawButton(window, font, "Back", 330.f, 560.f, 200.f, 60.f);
         }
-        else if (screen == 1) {
+        else if (screen == 1) {      // Game Window
 
             RectangleShape floor({ 900.f, 35.f });
             floor.setPosition({ 0.f, floor_y });
@@ -450,6 +499,7 @@ int main() {
             window.draw(floor);
 
             hoop(window, hoopSprite, game.hoopX, game.hoopY);
+            obstacle(window, obstacleSprite, game.obstacleX, game.obstacleY);
             ball(window, ballSprite, ball_x, game.ballY);
 
             drawText(window, font, "Score: " + to_string(game.score), 28, 20.f, 20.f);
